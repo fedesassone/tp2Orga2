@@ -13,21 +13,7 @@ void pixelar_c (
 	unsigned char (*dst_matrix)[dst_row_size] = (unsigned char (*)[dst_row_size]) dst;
 
 	//COMPLETAR
-
-		/*	Funcion que vamos a usar siempre para recorrer en c:
-
-		for (int f = 0; f < filas; f++) {
-			for (int c = 0; c < cols; c++) {
-				bgra_t *p_d = (bgra_t*) &dst_matrix[f][c * 4];
-				bgra_t *p_s = (bgra_t*) &src_matrix[f][c * 4];
-
-				p_d->b = p_s->b;
-				p_d->g = p_s->g;
-				p_d->r = p_s->r;
-				p_d->a = p_s->a;
-			}
-		}			
-	*/
+	
 		for (int f = 0; f < filas-1; f=f+2) {
 			for (int c = 0; c < cols-1; c=c+2) {
 				bgra_t *p_d = (bgra_t*) &dst_matrix[f][c * 4];
