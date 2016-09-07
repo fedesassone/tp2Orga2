@@ -1,0 +1,155 @@
+\subsection{Smalltiles}
+
+Esta operaci\'on consiste en repetir la imagen original 4 veces, de forma m\'as chica en la imagen destino. 
+Es decir, que si originalmente se tiene una imagen de tama\~no $w$ x $h$, en el destino se tendr\'an 4 im\'agenes 
+de tama\~no $w/2$ x $h/2$, una en cada cuadrante. \\
+
+% pegar una imagen de ejemplo.
+
+Para copiar los p\'ixeles, a cada $(i, j)$ de la primera imagen destino, le corresponde el valor de la posici\'on $(2i, 2j)$ en la imagen fuente.\\
+
+%Nota: En el caso que la entrada sea una imagen impar se debe duplicar la linea que sobra en su extremo derecho e inferior según corresponda.
+
+\subsubsection*{Implementación y uso}
+
+\noindent Funciones: \code{smalltiles_c}, \code{smalltiles_asm} 
+
+\noindent Parámetros: ninguno
+
+\subsection{Rotar canales}
+
+Consiste en rotar los canales de color entre sí, de la siguiente manera:
+\begin{center}
+\textbf{R} $\longrightarrow$ \textbf{G}\\
+\textbf{G} $\longrightarrow$ \textbf{B}\\
+\textbf{B} $\longrightarrow$ \textbf{R}\\
+\end{center}
+
+\noindent Funciones: \code{rotar_c}, \code{rotar_asm}  
+
+\noindent Parámetros: ninguno
+
+
+\subsection{Pixelar}
+
+El proceso de pixelar la imagen consiste en partir la imagen original en 
+bloques de $2\times2$ píxeles. Por cada componente por separado, y para cada bloque de la imagen original, se genera 
+un bloque del mismo tama\~no en la imagen destino y a cada uno de sus píxeles se
+le asigna el promedio de los valores de los píxeles del bloque de la imagen 
+original.\\
+
+\begin{framed}
+  \noindent \textbf{Nota}: El tama\~no (tanto alto como ancho) de la imagen 
+  destino es m'ultiplo de $4$.
+\end{framed}
+
+\subsubsection*{Implementación y uso}
+
+\noindent Funciones: \code{pixelar_c}, \code{pixelar_asm}
+
+\noindent Parámetros: ninguno
+
+\subsection{Combinar}
+
+Dadas 2 im'agenes de igual tama\~no, este procedimiento genera una tercera 
+formada a partir de estas 2. Cada píxel de la imagen resultante se forma de la 
+siguiente manera:
+
+\begin{center}
+  $ I_{dst}(i,j) =  \frac{alpha \cdot (I_{src_{a}}(i,j) - 
+    I_{src_{b}}(i,j))}{255.0} + I_{src_{b}}(i,j) $
+\end{center}
+
+donde $alpha \in [0.0; 255.0]$.\\
+
+\begin{framed}
+  \noindent \textbf{Nota}: Por simplicidad, este proceso se realiza con la 
+  imagen original y su reflejo vertical.
+\end{framed}
+
+\subsubsection*{Implementación y uso}
+
+\noindent Funciones: \code{combinar_c}, \code{combinar_asm},
+
+\noindent Parámetros: 
+
+\begin{enumerate}[-]
+\item \code{alpha}: Número en punto flotante entre 0.0 y 255.0
+\end{enumerate}
+
+\noindent Ejemplo de uso: \code{combinar -i c lena.bmp}
+
+\subsection{Colorizar}
+
+Dada una imagen de entrada, la imagen resultado se forma en base a las
+siguientes definiciones:
+
+\begin{center}
+\begin{displaymath}
+\begin{array}{ccccccc}
+    max_*(i, j) = max(      & I_{src\_*}(i-1, j-1) & , & I_{src\_*}(i-1, j) & , & I_{src\_*}(i-1, j+1), \\
+      & I_{src\_*}(i  , j-1) & , & I_{src\_*}(i  , j) & , & I_{src\_*}(i  , j+1), \\
+      & I_{src\_*}(i+1, j-1) & , & I_{src\_*}(i+1, j) & , & I_{src\_*}(i+1, j+1))
+\end{array}
+\end{displaymath}
+\end{center}
+
+donde $* \in \{R, G, B\}$. Luego
+\begin{center}
+\begin{displaymath}
+ \phi_R(i, j) = \left\{
+\begin{array}{l l}
+  		(1 + \alpha) & \text{si $max_R(i,j) \geq max_G(i,j)$ y $max_R(i,j) \geq max_B(i,j)$}\\
+  		(1 - \alpha) & \text{si no}
+\end{array}
+\right.
+\end{displaymath}
+\begin{displaymath}
+ \phi_G(i, j) = \left\{
+\begin{array}{l l}
+  		(1 + \alpha) & \text{si $max_R(i,j) < max_G(i,j)$ y $max_G(i,j) \geq max_B(i,j)$}\\
+  		(1 - \alpha) & \text{si no}
+\end{array}
+\right.
+\end{displaymath}
+\begin{displaymath}
+\phi_B(i, j) = \left\{
+\begin{array}{l l}
+  		(1 + \alpha) & \text{si $max_R(i,j) < max_B(i,j)$ y $max_G(i,j) < max_B(i,j)$}\\
+  		(1 - \alpha) & \text{si no}
+\end{array}
+\right.
+\end{displaymath}
+\end{center}
+
+donde $0 \leq \alpha \leq 1$.
+
+\begin{center}
+\begin{displaymath}
+\begin{array}{r l}
+  I_{dst_R}(i, j) = &min(255, \phi_R * I_{src_R}(i, j))\\
+  I_{dst_G}(i, j) = &min(255, \phi_G * I_{src_G}(i, j))\\
+  I_{dst_B}(i, j) = &min(255, \phi_B * I_{src_B}(i, j))
+\end{array}
+\end{displaymath}
+\end{center}
+
+
+\begin{framed}
+  \noindent \textbf{Nota}: La primera y 'ultima fila de la imagen original no
+  debe ser procesada. Lo mismo sucede para la primera y 'ultima columna.
+\end{framed}
+
+
+\subsubsection*{Implementación y uso}
+
+\noindent Funciones: \code{colorizar_c}, \code{colorizar_asm}
+
+\noindent Parámetros: 
+
+\begin{enumerate}[-]
+\item \code{float alpha}: número entre 0 y 1 que define intensidad de la colorización
+\end{enumerate}
+
+% -----------------------------------------------------------------
+% -----------------------------------------------------------------
