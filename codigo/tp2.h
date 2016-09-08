@@ -3,7 +3,6 @@
 #define __TP2__H__
 
 #include <stdbool.h>
-
 #define FILTRO_C   0
 #define FILTRO_ASM 1
 
