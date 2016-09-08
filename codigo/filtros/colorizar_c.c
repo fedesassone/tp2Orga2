@@ -62,9 +62,9 @@ void colorizar_c (
  			float fiG = ( (maxR <  maxG && maxG >= maxB) ? 1.0 + al: 1.0 - al );
  			float fiB = ( (maxR <  maxB && maxG <  maxB) ? 1.0 + al: 1.0 - al );			
 	//asigno destino	
-			p_d->r = (fiR*p_sActAct->r < 255.0 ? (char) (fiR * p_sActAct->r) : 255);
-			p_d->g = (fiG*p_sActAct->g < 255.0 ? (char) (fiG * p_sActAct->g) : 255);
-			p_d->b = (fiB*p_sActAct->b < 255.0 ? (char) (fiB * p_sActAct->b) : 255);
+			p_d->r = ((fiR * p_sActAct->r) < 255 ?  0.5+(p_sActAct->r * fiR  ) : 255);
+			p_d->g = ((fiG * p_sActAct->g) < 255 ?  0.5+(p_sActAct->g * fiG  ) : 255);
+			p_d->b = ((fiB * p_sActAct->b) < 255 ?  0.5+(p_sActAct->b * fiB  ) : 255);
 			
 		}
 	}			
