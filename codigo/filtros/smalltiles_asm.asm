@@ -50,10 +50,9 @@ misma_fila:
 	movdqu [rsi + r12*4], xmm1			;4to cuadrante
 	mov rax, rbx
 	mul r8
-	movdqu [rsi + rax], xmm1			;2do cuadrante
-	mov r9, rsi
-	lea r9, [r9 + r12*4]		
-	lea r9, [r9 + rax] 
+	movdqu [rsi + rax*4], xmm1			;2do cuadrante
+	lea r9, [rsi + r12*4]		
+	lea r9, [r9 + rax*4] 
 	movdqu [r9], xmm1				;1er cuadrante
 	add rdi, 32
 	sub rdx, 4
