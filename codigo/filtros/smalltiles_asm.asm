@@ -16,7 +16,6 @@ smalltiles_asm:
 	mov rbp, rsp
 	push rbx
 	push r12
-	push r13
 
 	mov rbx, rcx	;filas
 	mov r12, rdx 	;cols
@@ -43,7 +42,6 @@ ciclo_smalltiles:
 	loop ciclo_smalltiles
 	mov r9, r8
 fin_smalltiles_asm:
-	pop r13
 	pop r12
 	pop rbx
 	pop rbp
