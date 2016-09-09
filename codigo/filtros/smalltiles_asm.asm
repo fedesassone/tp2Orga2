@@ -41,6 +41,7 @@ ciclo_smalltiles:
 	jne misma_fila 					;se termino la fila del src
 	mov rax, r8
 	shr rax, 1	
+	lea rsi, [rsi + r8]				;salteo una fila
 	lea rsi, [rsi + rax]  				;[rsi + src_row_size/2] = principio proxima fila
 misma_fila:
 	movdqu xmm1, [rdi]
