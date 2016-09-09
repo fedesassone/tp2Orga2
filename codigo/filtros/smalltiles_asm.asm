@@ -28,9 +28,9 @@ smalltiles_asm:
 
 	mov rbx, rcx	;filas
 	mov r12, rdx 	;cols
+	shr rbx, 2  	;filas/2
 	mov rax, rbx
 	mul r12
-	shr rbx, 2  	;filas/2
 	shr r12, 2		;cols/2
 	mov rcx, rax 
 	shr rcx, 3
