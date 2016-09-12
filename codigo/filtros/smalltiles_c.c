@@ -6,19 +6,22 @@ void smalltiles_c (unsigned char *src, unsigned char *dst, int cols, int filas, 
 	unsigned char (*src_matrix)[src_row_size] = (unsigned char (*)[src_row_size]) src;
 	unsigned char (*dst_matrix)[dst_row_size] = (unsigned char (*)[dst_row_size]) dst;
 	
-	// ejemplo de uso de src_matrix y dst_matrix (copia la imagen)
-
-	for (int f = 0; f < filas; f++) {
+	for (int f = 0; f < filas/2; f++) {
 		for (int c = 0; c < cols; c++) {
-			bgra_t *p_d = (bgra_t*) &dst_matrix[f][c * 4];
-            bgra_t *p_s = (bgra_t*) &src_matrix[f][c * 4];
+			bgra_t *p_d0 = (bgra_t*) &dst_matrix[f][c * 4];
+			bgra_t *p_d1 = (bgra_t*) &dst_matrix[filas/2 + f][c * 4];
+            bgra_t *p_s = (bgra_t*) &src_matrix[2*f][2*c * 4];
 
-			p_d->b = p_s->b;
-			p_d->g = p_s->g;
-			p_d->r = p_s->r;
-			p_d->a = p_s->a;
-
+			p_d0->b = p_s->b;
+			p_d0->g = p_s->g;
+			p_d0->r = p_s->r;
+			p_d0->a = p_s->a;
+		
+			p_d1->b = p_s->b;
+			p_d1->g = p_s->g;
+			p_d1->r = p_s->r;
+			p_d1->a = p_s->a;
 		}
 	}
-	
 }
+
