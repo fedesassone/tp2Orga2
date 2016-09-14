@@ -18,51 +18,53 @@ section .data
 DEFAULT REL
 
 section .text
-global smalltiles_asm
 smalltiles_asm:
-;COMPLETAR
 	push rbp
 	mov rbp, rsp
+	sub rsp, 8
 	push rbx
 	push r12
-
-	mov rbx, rcx	;filas
-	mov r12, rdx 	;cols
-	shr rbx, 2  	;filas/2
-	mov rax, rbx
-	mul r12
-	shr r12, 2		;cols/2
-	mov rcx, rax 
-	shr rcx, 3
-
-
-ciclo_smalltiles:
-	cmp rdx, 0
-	jne misma_fila 					;se termino la fila del src
-	mov rax, r8
-	shr rax, 1	
-	lea rdi, [rdi + r8]				;salteo una fila
-	lea rsi, [rsi + rax]  				;[rsi + src_row_size/2] = principio proxima fila
-misma_fila:
-	movdqu xmm1, [rdi]
-	movdqu xmm2, [rdi + 4*4]
-	packusdw xmm1, xmm2
-	movdqu [rsi], xmm1				;3er cuadrante
-	movdqu [rsi + r12*4], xmm1			;4to cuadrante
-	mov rax, rbx
+	push r13
+	pxor xmm2, xmm2
+	pxor xmm0, xmm0
+	mov r12, r8		
+	shr r12, 1				;la mitad del ancho en bytes
+	mov r9, rcx
+	shr r9,  1				;cantidad de filas/2
+	mov rbx, rcx
+	shr rbx, 1
+	mov r13,rcx
+ciclo_small_alto:
+	mov rcx, r13
+	shr rcx, 2
+ciclo_small_ancho:
+	movdqu xmm1, [rdi]		; muevo 4 pixeles
+	movq [rsi], xmm1		;3er cuadrante
+	movq [rsi + r12], xmm1	;4to cuadrante
+	mov rax, r9	
 	mul r8
-	movdqu [rsi + rax*4], xmm1			;2do cuadrante
-	lea r9, [rsi + r12*4]		
-	lea r9, [r9 + rax*4] 
-	movdqu [r9], xmm1				;1er cuadrante
-	add rdi, 32
-	sub rdx, 4
-	add rsi, 16
-	loop ciclo_smalltiles
-
+	movq [rsi + rax], xmm1	;2do cuadrante
+	
+	add rax, r12	
+	movq [rsi + rax],xmm1		;1er cuadrante
+	add rdi, 16
+	add rsi, 8
+	loop ciclo_small_ancho
+	
+	dec rbx
+	cmp rbx, 0
+	je fin_smalltiles
+	
+	lea rsi, [rsi + r12]
+	lea rdi, [rdi + r8]
+	jmp ciclo_small_alto
+	
+fin_smalltiles:
 	mov r9, r8
-fin_smalltiles_asm:
+	
+	pop r13
 	pop r12
 	pop rbx
+	add rsp, 8
 	pop rbp
 	ret
