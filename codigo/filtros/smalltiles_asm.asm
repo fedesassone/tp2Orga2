@@ -42,7 +42,7 @@ ciclo_small_alto:
 	shr rcx, 2
 ciclo_small_ancho:
 	movdqu xmm1, [rdi]		; muevo 4 pixeles
-	shufps xmm1, xmm1, 08h		
+	shufps xmm1, xmm1, 0dh		
 	movq [rsi], xmm1		;3er cuadrante
 	movq [rsi + r12], xmm1	;4to cuadrante
 	mov rax, r9	
