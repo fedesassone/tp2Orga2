@@ -18,6 +18,8 @@ section .data
 DEFAULT REL
 
 section .text
+global smalltiles_asm
+
 smalltiles_asm:
 	push rbp
 	mov rbp, rsp
