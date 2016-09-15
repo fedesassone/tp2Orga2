@@ -38,9 +38,11 @@ smalltiles_asm:
 	mov r13,rcx
 ciclo_small_alto:
 	mov rcx, r13
+	lea rdi, [rdi + r8]
 	shr rcx, 2
 ciclo_small_ancho:
 	movdqu xmm1, [rdi]		; muevo 4 pixeles
+	shufps xmm1, xmm1, 08h		
 	movq [rsi], xmm1		;3er cuadrante
 	movq [rsi + r12], xmm1	;4to cuadrante
 	mov rax, r9	
@@ -58,7 +60,6 @@ ciclo_small_ancho:
 	je fin_smalltiles
 	
 	lea rsi, [rsi + r12]
-	lea rdi, [rdi + r8]
 	jmp ciclo_small_alto
 	
 fin_smalltiles:
