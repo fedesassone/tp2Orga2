@@ -26,10 +26,10 @@ section .text
 combinar_asm:
 	;; TODO: Implementar
 
-	sub rsp, 8
+	;sub rsp, 8
 
-	call combinar_c
+	;call combinar_c
 
-	add rsp, 8
+	;add rsp, 8
 
 	ret

@@ -1,7 +1,7 @@
 section .data
 DEFAULT REL
 
-mask2:db 0xd,0xE, 0xc,0xf, 9,10,8,12, 5,6,4,7, 1,2,0,3
+mask2:db 13,14,12,15, 9,10,8,12, 5,6,4,7, 1,2,0,3
 section .text
 global rotar_asm
 ; entran los parametros:
@@ -34,7 +34,7 @@ rotar_asm:
 		movdqu xmm0, [rdi] ; src
 		movdqu xmm1, [mask2]
 		pshufb xmm0, xmm1
-		pshufd xmm0, xmm0, 0x2B
+		pshufd xmm0, xmm0, 00011011b
 		movdqu [rsi], xmm0
 		add rdi, 16
 		add rsi, 16
