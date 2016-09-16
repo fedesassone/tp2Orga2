@@ -1,7 +1,7 @@
 section .data
 DEFAULT REL
 
-mask2:db 13,14,12,15, 9,10,8,12, 5,6,4,7, 1,2,0,3
+mask2:db   1,2,0,3,  5,6,4,7,  9,10,8,12,  13,14,12,15,
 section .text
 global rotar_asm
 ; entran los parametros:
@@ -22,6 +22,10 @@ rotar_asm:
 ; R->G 
 ; G->B
 ; B->R
+; en XMM0: 	| A4 | B4 | G4 | R4 |.... | A0 | B0 | G0 | R0 
+;			128					..  	32				0
+
+
 	push rbp
 	mov rbp, rsp
 	push rbx
@@ -30,11 +34,11 @@ rotar_asm:
 		mul rdx
 		mov rcx, rax
 		shr rcx, 2 ; divido por 4; tengo la cantidad de veces a acceder a memoria
+		movdqu xmm1, [mask2]
 		.ciclo:
 		movdqu xmm0, [rdi] ; src
-		movdqu xmm1, [mask2]
 		pshufb xmm0, xmm1
-		pshufd xmm0, xmm0, 00011011b
+		;pshufd xmm0, xmm0, 00011011b
 		movdqu [rsi], xmm0
 		add rdi, 16
 		add rsi, 16
