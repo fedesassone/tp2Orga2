@@ -19,7 +19,6 @@ DEFAULT REL
 
 section .text
 global smalltiles_asm
-
 smalltiles_asm:
 	push rbp
 	mov rbp, rsp
@@ -35,22 +34,22 @@ smalltiles_asm:
 	shr r9,  1				;cantidad de filas/2
 	mov rbx, rcx
 	shr rbx, 1
-	mov r13,rcx
+	mov r13,rdx
 ciclo_small_alto:
 	mov rcx, r13
-	lea rdi, [rdi + r8]
 	shr rcx, 2
 ciclo_small_ancho:
-	movdqu xmm1, [rdi]		; muevo 4 pixeles
-	shufps xmm1, xmm1, 0dh		
-	movq [rsi], xmm1		;3er cuadrante
-	movq [rsi + r12], xmm1	;4to cuadrante
+	movdqu xmm1, [rdi]		; xmm1 = |p1|p2|p3|p4|
+	movdqu xmm3, xmm1
+	pshufd xmm3, xmm1, 0x88
+	movq [rsi], xmm3		;3er cuadrante
+	movq [rsi + r12], xmm3	;4to cuadrante
 	mov rax, r9	
 	mul r8
-	movq [rsi + rax], xmm1	;2do cuadrante
+	movq [rsi + rax], xmm3	;2do cuadrante
 	
 	add rax, r12	
-	movq [rsi + rax],xmm1		;1er cuadrante
+	movq [rsi + rax],xmm3		;1er cuadrante
 	add rdi, 16
 	add rsi, 8
 	loop ciclo_small_ancho
@@ -59,6 +58,7 @@ ciclo_small_ancho:
 	cmp rbx, 0
 	je fin_smalltiles
 	
+	lea rdi, [rdi + r8]
 	lea rsi, [rsi + r12]
 	jmp ciclo_small_alto
 	
