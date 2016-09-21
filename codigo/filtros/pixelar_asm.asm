@@ -18,7 +18,7 @@ extern pixelar_c
 
 global pixelar_asm
 section .data
-mask: dw 0x0400,0x0400,0x0400,0x0400
+mask: dd 0x04, 0x04, 0x04, 0x04
 
 section .text
 	
@@ -46,21 +46,26 @@ ciclo_pixelar_ancho:
 	punpckhbw xmm3, xmm7	;xmm3 = |0|b127|..|0|b64|
 	punpcklbw xmm4, xmm7	;xmm4 = |0|b63|..|0|b0|
 
-	addss xmm1, xmm3		;xmm1 = |?|a127+b127|..|?|a64+b64|
+	paddw xmm1, xmm3		;xmm1 = |?|a127+b127|..|?|a64+b64|
 	movdqu xmm3, xmm1		;xmm3 = xmm1
 	psrldq xmm1, 8			;xmm1 = |0|0|?|a127+b127..|
-	addps xmm1, xmm3		;xmm1 = |?|a127+b127..|?|a127+b127+..+a64+b64|
+	paddw xmm1, xmm3		;xmm1 = |?|a127+b127..|?|a127+b127+..+a64+b64|
 	
-	addss xmm2, xmm4		;xmm2 = |?|a63+b63|..|?|a0+b0|
+	paddw xmm2, xmm4		;xmm2 = |?|a63+b63|..|?|a0+b0|
 	movdqu xmm4, xmm2		;xmm4 = xmm2
 	psrldq xmm2, 8			;xmm2 = |0|0|?|a63+b63..|
-	addps xmm2, xmm4		;xmm1 = |?|a63+b63..|?|a63+b63+..+a0+b0|
+	paddw xmm2, xmm4		;xmm1 = |?|a63+b63..|?|a63+b63+..+a0+b0|
 	
 	movdqu xmm0, [mask]
 	punpcklwd xmm1, xmm7
 	punpcklwd xmm2, xmm7
-	;divps xmm1, xmm0		;xmm1 = |r/4|g/4|b/4|a/4|
-	;divps xmm2, xmm0		;xmm2 = |r/4|g/4|b/4|a/4|
+	cvtdq2ps xmm3, xmm1
+	cvtdq2ps xmm4, xmm2
+	cvtdq2ps xmm0, xmm0
+	divps xmm3, xmm0		;xmm1 = |r/4|g/4|b/4|a/4|
+	divps xmm4, xmm0		;xmm2 = |r/4|g/4|b/4|a/4|
+	CVTPS2DQ xmm1, xmm3
+	CVTPS2DQ xmm2, xmm4
 	packusdw xmm1, xmm1
 	packusdw xmm2, xmm2
 	;pshufd xmm1,xmm1,44h
@@ -85,4 +90,3 @@ fin_pixelar:
 	pop rbx
 	pop rbp
 	ret
-
