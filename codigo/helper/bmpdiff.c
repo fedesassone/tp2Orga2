@@ -290,9 +290,9 @@ int read_options(int argc, char* argv[], options* opt) {
             optionals++;
         }
     }
-    //if (argc - 1 - optionals != 3) {
-      //  return 1;
-    //}
+    if (argc - 1 - optionals != 3) {
+        return 1;
+    }
     opt->epsilon = atoi(argv[argc-1]);
     opt->file1 = argv[argc-2];
     opt->file2 = argv[argc-3];
