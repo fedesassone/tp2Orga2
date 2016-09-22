@@ -1,7 +1,7 @@
 section .data
 DEFAULT REL
 
-mask2:db   1,2,0,3,  5,6,4,7,  9,10,8,12,  13,14,12,15,
+mask2:db   1,2,0,3,  5,6,4,7,  9,10,8,12,  13,14,12,15
 section .text
 global rotar_asm
 ; entran los parametros:
