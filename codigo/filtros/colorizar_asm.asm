@@ -39,25 +39,31 @@ colorizar_asm:
 	 push r12
 	 push r13
 	 push r14
+	 push r15
+	 sub rsp, 8
 
+	 	movdqu xmm4, xmm0		; guardo alpha 
+	 	mov r12, rdi				;src 
+	 	mov r9, rsi 			;dst 
 	 	;busco cantidad de ciclos
 	 	sub rcx, 2 				; rcx = filas -2
 	 	mov rax, rcx			; rax = filas a recorrer 
 	 	mul rdx 				; rax = (filas -2) * cols 
 	 	mov rcx, rax
-	 	shr rcx, 2 				; rcx = cantidad de veces a ciclar 
+	 	shr rcx, 3 				; rcx = cantidad de veces a ciclar 
 	 	;armo punteros 
 	 	mov rax, r8 	  		; rax = tam fila 
 	 	shl rax, 2 				; rax = tam fila en bytes
-	 	lea rbx, [rdi + rax]	; rbx = fila i+1
-	 	lea r12, [rbx + rax] 	; r12 = fila i+2
+	 	lea r10, [r12 + rax]		; rbx = fila i+1
+	 	lea r11, [r10 + rax] 	; r12 = fila i+2
 	 	lea r9,  [r9 + rax]
 	 	add r9, 4				; r9  = dst_inic 
 		.ciclo:
 			;punteros
-			movdqu xmm0, [rdi]	; xmm0 = src_fila_i_4pixeles
-			movdqu xmm1, [rbx]	; xmm1 = src_fila_i+1_4pixeles
-			movdqu xmm2, [r12]	; xmm2 = src_fila_i+2_4pixeles
+			movdqu xmm0, [r8]	; xmm0 = src_fila_i_4pixeles
+			movdqu xmm1, [r10]	; xmm1 = src_fila_i+1_4pixeles
+			movdqu xmm2, [r11]	; xmm2 = src_fila_i+2_4pixeles
+			movdqu xmm3, xmm1	; me guardo el actual ; xmm3 = |pix4 | pix3| pix2| pix1| 
 			;maximos 
 			pmaxub xmm0, xmm1	; xmm0 = max(xmm0, xmm1)
 			pmaxub xmm0, xmm2 	; xmm0 = max(xmm0, xmm2) => xmm0 = | MAX_B_P1 | MAX_G_P1 | MAX_R_P1 | - | .... | MAX_B_P4 | ... | - |
@@ -66,43 +72,89 @@ colorizar_asm:
 			pslldq xmm0, 4		; shifteo xmm0 a la izquierda 4 bytes
 			pmaxub xmm1, xmm0	; max parcial
 			pslldq xmm0, 4		; de nuevo 
-			pmaxub xmm1, xmm0	; maximos del primer y seg PIXEL en primer y seg word de xmm1 => xmm1 = | MAXIMOSp1 | maximosp2 | basura | basura |
+			pmaxub xmm1, xmm0	; maximos del primer y seg PIXEL en primer y seg word de xmm1 => xmm1 = | MAXIMOSp2 | maximosp1 | basura | basura |
 			;fi'es
-			movdqu xmm2, xmm1 
-			psrldq xmm1, 12 		; xmm1 = | 0 |...| 0 | maximosp1 |
+			movdqu xmm2, xmm1 		; xmm2 = xmm1
+			psrldq xmm1, 12 		; xmm1 = | 0 |...| 0 | maximosp2 |
 			pslldq xmm2, 4
-			psrldq xmm2, 12			; xmm2 = | 0 |...| 0 | maximosp2 | 
+			psrldq xmm2, 12			; xmm2 = | 0 |...| 0 | maximosp1 | 
 			pxor xmm0, xmm0
-			punpcklbw xmm1, xmm0	
-			punpcklwd xmm1, xmm0	; xmm1 = |maxb | maxg | maxr | tr |
+			punpcklbw xmm1, xmm0	 
+			punpcklwd xmm1, xmm0	; xmm1 = |maxb | maxg | maxr | tr | PIXEL 2
 			punpcklbw xmm2, xmm0 	
-			punpcklwd xmm2, xmm0	; xmm2 = |maxb | maxg | maxr | tr |
-			;float fiR = ( (maxR >= maxG && maxR >= maxB) ? 1.0 + al: 1.0 - al )
+			punpcklwd xmm2, xmm0	; xmm2 = |maxb | maxg | maxr | tr | PIXEL 1 
+			
+			;---- Pixel 2
+			; comparaciones 
+			pextrd edi, xmm1, 1 ; maxred 
+			pextrd esi, xmm1, 2 ; maxgreen
+			pextrd edx, xmm1, 3 ; maxblue 
+
+			mov rbx, 1b ;	rbx = 1
+			pshufd xmm4, xmm4, 0b 	; xmm4 = alpha | alpha | alpha | alpha
+			pinsrd xmm4, ebx, 0b 	; xmm4 =  alpha | alpha | alpha | 0
+			xor rax, rax
+			not rax ; eax = -1 
+			; ebx = alpha
+			pxor xmm5, xmm5  		; XMM5 = 0's  
+	
 			.fiR:
-			movdqu xmm0, xmm1
-			psrldq xmm0, 4
-			;pmaxuw
-
-			; psrldq xmm0, 1 		;comparo red con green
-			; pmaxub xmm0, xmm1	
-			; psrldq xmm0, 1
-			; pmaxub xmm0, xmm1 	; comparo blue con max(red,green)
-			; pcmpeqb xmm0, xmm1	; si red cumple, seteo byte13 en 1's 
-			; pextrb r13, xmm0, 1101b;extraigo en r13
-			; cmp r13, 1111b
-			; je .sumoAlphaRed
-			; jmp .restoAlphaRed
-			; .fiG:
-
-			; .sumoAlphaRed:
-			; .restoAlphaRed:
+			;float fiR = ( (maxR >= maxG && maxR >= maxB) ? 1.0 + al: 1.0 - al )
+			cmp edi, esi
+			jl .elseFiR
+			cmp edi, edx
+			jl .elseFiR
+			pinsrd xmm5, ebx, 11b ; xmm5 = | 1  | 0's..
+			jmp .fiG
+			.elseFiR:
+			pinsrd xmm5, eax, 11b ; xmm5 = | -1 | 0's.. 
+			.fiG: 
 			;float fiG = ( (maxR <  maxG && maxG >= maxB) ? 1.0 + al: 1.0 - al )
+			cmp edi, edx
+			jge .elseFiG
+			cmp esi, edx
+			jge .elseFiG
+			pinsrd xmm5, ebx, 10b; xmm5 = ? | 1 | 0's.. 
+			jmp .fiB
+			.elseFiG:
+			pinsrd xmm5, eax, 10b; xmm5 = ? | -1 | 0's 
+			.fiB:
  			;float fiB = ( (maxR <  maxB && maxG <  maxB) ? 1.0 + al: 1.0 - al )			
+ 			cmp edi, edx
+ 			jge .elseFiB
+ 			cmp esi, edx
+ 			jge .elseFiB
+ 			pinsrd xmm5, ebx, 1b  ; xmm5 = ? | ? | 1 | 0	
+ 			jmp .sigo
+ 			.elseFiB:
+ 			pinsrd xmm5, eax, 1b ; xmm5 = ? | ? | -1 | 0 
+ 			.sigo:
+ 			cvtdq2ps xmm5, xmm5 ; xmm5 = valores a sumar en floats 
+ 			addps xmm4, xmm5  	; xmm5 = fiR | fiG | fiB | 0 
 
+ 			pxor xmm6, xmm6
+ 			punpcklbw xmm3, xmm6 ; xmm3 = |blue2 | green2 | red2 | trasp2 | blue1 | green1 | red1 | trasp1 | 	 
 
-			loop .ciclo
+		;	p_d->r = ((fiR * p_sActAct->r) < 255 ?  0.5+(p_sActAct->r * fiR  ) : 255);
+		;	p_d->g = ((fiG * p_sActAct->g) < 255 ?  0.5+(p_sActAct->g * fiG  ) : 255);
+		;	p_d->b = ((fiB * p_sActAct->b) < 255 ?  0.5+(p_sActAct->b * fiB  ) : 255);
+			
 
+ 			add r9 , 8
+ 			add r10, 8
+ 			add r11, 8 ; proceso dos pixeles cada ciclo; salto 8 bytes en cada ciclo 
+ 			add r12, 8
 
+ 			xor rax, rax
+ 			dec rcx
+ 			cmp rcx, rax 
+ 			jne .fin
+			jmp .ciclo
+			
+			.fin:
+
+	 add rsp, 8
+	 pop r15
 	 pop r14
 	 pop r13
 	 pop r12
