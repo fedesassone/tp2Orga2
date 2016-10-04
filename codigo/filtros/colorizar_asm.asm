@@ -104,10 +104,10 @@ colorizar_asm:
 			jl .elseFiR
 			cmp edi, edx
 			jl .elseFiR
-			pinsrd xmm5, ebx, 11b ; xmm5 = | 1  | 0's..
+			pinsrd xmm5, ebx, 1b ; xmm5 = | 1  | 0's..
 			jmp .fiG
 			.elseFiR:
-			pinsrd xmm5, eax, 11b ; xmm5 = | -1 | 0's.. 
+			pinsrd xmm5, eax, 1b ; xmm5 = | -1 | 0's.. 
 			.fiG: 
 			;float fiG = ( (maxR <  maxG && maxG >= maxB) ? 1.0 + al: 1.0 - al )
 			cmp edi, edx
@@ -124,17 +124,68 @@ colorizar_asm:
  			jge .elseFiB
  			cmp esi, edx
  			jge .elseFiB
- 			pinsrd xmm5, ebx, 1b  ; xmm5 = ? | ? | 1 | 0	
+ 			pinsrd xmm5, ebx, 11b  ; xmm5 = ? | ? | 1 | 0	
  			jmp .sigo
  			.elseFiB:
- 			pinsrd xmm5, eax, 1b ; xmm5 = ? | ? | -1 | 0 
+ 			pinsrd xmm5, eax, 11b ; xmm5 = ? | ? | -1 | 0 
  			.sigo:
  			cvtdq2ps xmm5, xmm5 ; xmm5 = valores a sumar en floats 
- 			addps xmm4, xmm5  	; xmm5 = fiR | fiG | fiB | 0 
+ 			addps xmm5, xmm4  	; xmm5 = fiB | fiG | fiR | 0  			DEL PIXEL 2
 
- 			pxor xmm6, xmm6
- 			punpcklbw xmm3, xmm6 ; xmm3 = |blue2 | green2 | red2 | trasp2 | blue1 | green1 | red1 | trasp1 | 	 
 
+			;---- Pixel 1
+			; comparaciones 
+			pextrd edi, xmm2, 1 ; maxred 
+			pextrd esi, xmm2, 2 ; maxgreen
+			pextrd edx, xmm2, 3 ; maxblue 
+			pxor xmm6, xmm6
+			
+			.fiR1:
+			;float fiR = ( (maxR >= maxG && maxR >= maxB) ? 1.0 + al: 1.0 - al )
+			cmp edi, esi
+			jl .elseFiR1
+			cmp edi, edx
+			jl .elseFiR1
+			pinsrd xmm6, ebx, 1b ; xmm5 = | 1  | 0's..
+			jmp .fiG
+			.elseFiR1:
+			pinsrd xmm6, eax, 1b ; xmm5 = | -1 | 0's.. 
+			.fiG1: 
+			;float fiG = ( (maxR <  maxG && maxG >= maxB) ? 1.0 + al: 1.0 - al )
+			cmp edi, edx
+			jge .elseFiG1
+			cmp esi, edx
+			jge .elseFiG1
+			pinsrd xmm6, ebx, 10b; xmm5 = ? | 1 | 0's.. 
+			jmp .fiB1
+			.elseFiG1:
+			pinsrd xmm6, eax, 10b; xmm5 = ? | -1 | 0's 
+			.fiB1:
+ 			;float fiB = ( (maxR <  maxB && maxG <  maxB) ? 1.0 + al: 1.0 - al )			
+ 			cmp edi, edx
+ 			jge .elseFiB1
+ 			cmp esi, edx
+ 			jge .elseFiB1
+ 			pinsrd xmm6, ebx, 11b  ; xmm5 = ? | ? | 1 | 0	
+ 			jmp .sigo3
+ 			.elseFiB1:
+ 			pinsrd xmm6, eax, 11b ; xmm5 = ? | ? | -1 | 0 
+ 			.sigo3:
+ 			cvtdq2ps xmm6, xmm6 ; xmm6 = valores a sumar en floats 
+ 			addps xmm4, xmm6  	; xmm6 = fiB | fiG | fiR | 0  			DEL PIXEL 1
+
+ 			; xmm6 = fiR | fiG | fiB | 0  			DEL PIXEL 1
+ 			; ; xmm5 = fiR | fiG | fiB | 0  			DEL PIXEL 2
+
+ 			pxor xmm7, xmm7
+ 			pxor xmm1, xmm1
+ 			pxor xmm2, xmm2
+ 			punpcklbw xmm3, xmm7 ; xmm3 = |blue2 | green2 | red2 | trasp2 | blue1 | green1 | red1 | trasp1 | 	 
+ 			movdqu xmm1, xmm3
+ 			movdqu xmm2, xmm3
+ 			punpcklwd xmm1, xmm7 ; xmm1 = | blue1 | green1 | red1 | transp1
+ 			punpckhwd xmm2, xmm7 ; xmm2 = | blue2 | green2 | red2 | transp2
+ 			
 		;	p_d->r = ((fiR * p_sActAct->r) < 255 ?  0.5+(p_sActAct->r * fiR  ) : 255);
 		;	p_d->g = ((fiG * p_sActAct->g) < 255 ?  0.5+(p_sActAct->g * fiG  ) : 255);
 		;	p_d->b = ((fiB * p_sActAct->b) < 255 ?  0.5+(p_sActAct->b * fiB  ) : 255);
