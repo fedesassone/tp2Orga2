@@ -56,6 +56,7 @@ colorizar_asm:
 		;.ciclo:
 			;punteros
 			movdqu xmm0, [r13]	; xmm0 = src_fila_i_4pixeles
+			;movdqu xmm15, xmm0
 			movdqu xmm1, [r14]	; xmm1 = src_fila_i+1_4pixeles
 			movdqu xmm2, [r15]	; xmm2 = src_fila_i+2_4pixeles
 			movdqu xmm3, xmm1	; me guardo el actual ; xmm3 = |pix4 | pix3| pix2| pix1| 
@@ -239,7 +240,8 @@ colorizar_asm:
  			pand xmm7, xmm8 				; 255 en float donde tiene que haber 
  			por xmm5, xmm7 					; 255 donde debe, y 0,5 +fi*c donde debe
  			; hasta acá esta todo en float 
- 			;convierto a INT 
+ 			;convierto a INT
+
  			cvtps2dq xmm5, xmm5
  			cvtps2dq xmm6, xmm6
  			;pack => destino es la parte BAJA
@@ -254,18 +256,23 @@ colorizar_asm:
  			packusdw xmm5, xmm6 ; double -> word 
  			pxor xmm0, xmm0 
  			packuswb xmm5, xmm0 ;word -> byte => cada componente ocupa un byte 
+ 			
  			; xmm6 = |0 | 0 | pixel2 | pixel1 
 
- 			pextrq r15, xmm5, 1b
- 			mov [r12], r15
+ 		; 	;pextrq [r12], xmm5, 0b
+ 		; 	;xor r15, r15 
+ 		; 	mov r13, [r12]
+ 			;pextrq r13, xmm0, 0b
+ 			;mov qword [r12], r13
 
 
 		; ;	p_d->r = ((fiR * p_sActAct->r) < 255 ?  0.5+(p_sActAct->r * fiR  ) : 255);
 		; ;	p_d->g = ((fiG * p_sActAct->g) < 255 ?  0.5+(p_sActAct->g * fiG  ) : 255);
 		; ;	p_d->b = ((fiB * p_sActAct->b) < 255 ?  0.5+(p_sActAct->b * fiB  ) : 255);
-		
-
-			;mov qword [r12], 0b	
+			
+			pextrq [r12], xmm5, 0b 
+			;movdqu [r12], xmm15
+			;mov [r12], rax 	
 
 			add r12, 8	;dst 
 			add r13, 8	;src_fila_i
