@@ -68,7 +68,7 @@ colorizar_asm:
 			pslldq xmm0, 4		; shifteo xmm0 a la izquierda 4 bytes
 			pmaxub xmm1, xmm0	; max parcial
 			pslldq xmm0, 4		; de nuevo 
-			pmaxub xmm1, xmm0	; maximos del primer y seg PIXEL en primer y seg word de xmm1 => xmm1 = | MAXIMOSp2 | maximosp1 | basura | basura |
+			pmaxub xmm1, xmm0	; maximos del SEG y prim PIXEL en primer y seg word de xmm1 => xmm1 = | MAXIMOSp2 | maximosp1 | basura | basura |
 			;fi'es
 			movdqu xmm2, xmm1 		; xmm2 = xmm1
 			psrldq xmm1, 12 		; xmm1 = | 0 |...| 0 | maximosp2 |
@@ -202,17 +202,14 @@ colorizar_asm:
  			cmpps xmm0, xmm1, 1 	; compara si es menor 
  			cmpps xmm9, xmm2, 1 	; same, pixel 2
  			;pcmpeqd xmm0, xmm1		; xmm1 = (fiC * C) < 255? 255 ; 0)
- 			;pandn xmm0, xmm0 		; xmm0 = 255 en entero donde hay que poner 0.5 + sat
+ 			;pcmpeqw xmm0, xmm0 		; xmm0 = 255 en entero donde hay que poner 0.5 + sat
  									; xmm9 = FF donde hay que poner 0.5 + sat en pixel 2
  			movdqu xmm7, xmm0
  			movdqu xmm10, xmm9 		
- 			pandn xmm10, xmm10 		; xmm10 = FF donde hay que poner 255 en float pixel 2 
- 			pandn xmm7, xmm7 		; xmm7 = 255 en entero donde hay que poner 255 en float  
+ 			pcmpeqw xmm10, xmm10 		; xmm10 = FF donde hay que poner 255 en float pixel 2 
+ 			pcmpeqw xmm7, xmm7 		; xmm7 = 255 en entero donde hay que poner 255 en float  
  			pand xmm1, xmm0 		; xmm1 = fiC * c donde tiene que haberlo
  			pand xmm2, xmm9 		; xmm2 = fiC * C donde tiene que haberlo pixel 2  
-
-
-
 
  			pinsrd xmm5, ebx, 1b
  			pshufd xmm5, xmm5, 01010100b 	; xmm5 = 1 | 1 | 1 | 0
@@ -229,9 +226,6 @@ colorizar_asm:
  			pand xmm6, xmm9					; pixel 2
  			addps xmm5, xmm1 				; 0,5 + fi*c donde tiene que haberlo 
  			addps xmm6, xmm2 				; pixel 2 
- 		
-
-
 
 
  			pand xmm10, xmm8 				; 255 en float donde tiene que haber pix2
@@ -257,22 +251,14 @@ colorizar_asm:
  			pxor xmm0, xmm0 
  			packuswb xmm5, xmm0 ;word -> byte => cada componente ocupa un byte 
  			
- 			; xmm6 = |0 | 0 | pixel2 | pixel1 
+ 			;xmm5 = |0 | 0 | pixel2 | pixel1 
 
- 		; 	;pextrq [r12], xmm5, 0b
- 		; 	;xor r15, r15 
- 		; 	mov r13, [r12]
- 			;pextrq r13, xmm0, 0b
- 			;mov qword [r12], r13
+		;	p_d->r = ((fiR * p_sActAct->r) < 255 ?  0.5+(p_sActAct->r * fiR  ) : 255);
+		;	p_d->g = ((fiG * p_sActAct->g) < 255 ?  0.5+(p_sActAct->g * fiG  ) : 255);
+		;	p_d->b = ((fiB * p_sActAct->b) < 255 ?  0.5+(p_sActAct->b * fiB  ) : 255);
 
-
-		; ;	p_d->r = ((fiR * p_sActAct->r) < 255 ?  0.5+(p_sActAct->r * fiR  ) : 255);
-		; ;	p_d->g = ((fiG * p_sActAct->g) < 255 ?  0.5+(p_sActAct->g * fiG  ) : 255);
-		; ;	p_d->b = ((fiB * p_sActAct->b) < 255 ?  0.5+(p_sActAct->b * fiB  ) : 255);
-			
-			pextrq [r12], xmm5, 0b 
-			;movdqu [r12], xmm15
-			;mov [r12], rax 	
+			;pcmpeqd xmm5, xmm5 
+			pextrq [r12], xmm5, 0b
 
 			add r12, 8	;dst 
 			add r13, 8	;src_fila_i
