@@ -40,6 +40,7 @@ colorizar_asm:
 
 	 	movdqu xmm4, xmm0		; guardo alpha 
 		pshufd xmm4, xmm4, 0b 	; xmm4 = alpha | alpha | alpha | alpha
+		
 		xor eax, eax
 		pinsrd xmm4, eax, 0b 	; xmm4 =  alpha | alpha | alpha | 0
 
@@ -216,13 +217,13 @@ colorizar_asm:
 
  			cmpps xmm0, xmm1, 1 	; compara si es menor 
  			cmpps xmm9, xmm2, 1 	; same, pixel 2
- 			;pcmpeqd xmm0, xmm1		; xmm1 = (fiC * C) < 255? 255 ; 0)
+ 			;pandn xmm0, xmm1		; xmm1 = (fiC * C) < 255? 255 ; 0)
  			;pcmpeqw xmm0, xmm0 		; xmm0 = 255 en entero donde hay que poner 0.5 + sat
  									; xmm9 = FF donde hay que poner 0.5 + sat en pixel 2
  			movdqu xmm7, xmm0		;xmm7 = mascara ed menor o no a 255 edl pix 1
  			movdqu xmm10, xmm9 		;xmm10 = mascara ed menor o no a 255 edl pix 2
- 			pcmpeqd xmm10, xmm10 	; xmm10 = FF donde hay que poner 255 en float pixel 2 
- 			pcmpeqd xmm7, xmm7 		; xmm7  = FF en entero donde hay que poner 255 en float  
+ 			pandn xmm10, xmm10 	; xmm10 = FF donde hay que poner 255 en float pixel 2 
+ 			pandn xmm7, xmm7 		; xmm7  = FF en entero donde hay que poner 255 en float  
  			pand xmm1, xmm0 		; xmm1 = fiC * c donde tiene que haberlo
  			pand xmm2, xmm9 		; xmm2 = fiC * C donde tiene que haberlo pixel 2  
 
@@ -252,11 +253,11 @@ pxor xmm6, xmm6
  			addps xmm6, xmm2 				; pixel 2 
 
 ;///chequear esto 
-; 			pand xmm10, xmm8 				; 255 en float donde tiene que haber pix2
- ;			por xmm6, xmm10 				;255 donde debe y o,5 + fi*c donde debe pixel2 
- 			;pxor xmm0, xmm0
- ;			pand xmm7, xmm8 				; 255 en float donde tiene que haber 
- ;			por xmm5, xmm7 					; 255 donde debe, y 0,5 +fi*c donde debe
+			pand xmm10, xmm8 				; 255 en float donde tiene que haber pix2
+ 			por xmm6, xmm10 				;255 donde debe y o,5 + fi*c donde debe pixel2 
+ 			pxor xmm0, xmm0
+ 			addps xmm7, xmm8 				; 255 en float donde tiene que haber 
+ 			por xmm5, xmm7 					; 255 donde debe, y 0,5 +fi*c donde debe
  			; hasta acá esta todo en float 
  			;convierto a INT
 
@@ -281,7 +282,7 @@ pxor xmm6, xmm6
 		;	p_d->g = ((fiG * p_sActAct->g) < 255 ?  0.5+(p_sActAct->g * fiG  ) : 255);
 		;	p_d->b = ((fiB * p_sActAct->b) < 255 ?  0.5+(p_sActAct->b * fiB  ) : 255);
 
-			;pcmpeqd xmm5, xmm5 
+			;pandn xmm5, xmm5 
 			pextrq [r12], xmm5, 0b
 
 			add r12, 8	;dst 
