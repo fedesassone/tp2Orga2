@@ -25,6 +25,10 @@ section .text
 
 
 ;;;; | B | G | R | A | ;;;;;
+;;;; Struct -> b, g, r, a;
+;;;; => memoria -> | B | G | R | A |
+;;;; => registros -> de más a menos significativo -> | A | R | G | B |
+;;;; GDT -> {Menos significativo ..... Más significativo}
 
 global colorizar_asm
 colorizar_asm:
@@ -37,57 +41,65 @@ colorizar_asm:
 	 push r14
 	 push r15
 	 sub rsp, 8
+	 							; LOS REGISTROS DE LOS COMENTARIOS ESTAN INVERTIDOS PARA 
+	 							; FACILITAR SEGUIMIENTO EN GDT 
+	 							; => xreg = | menos significativo | ... | mas significativo | 
+
 
 	 	movdqu xmm4, xmm0		; guardo alpha 
 		pshufd xmm4, xmm4, 0b 	; xmm4 = alpha | alpha | alpha | alpha
-		
-		xor eax, eax
-		pinsrd xmm4, eax, 0b 	; xmm4 =  alpha | alpha | alpha | 0
-
-	 	mov r12, rsi 			; r12 = dst 
-	 	mov r13, rdi			; r13 = src 	 	
+		xor eax, eax			; eax = 0 
+		pinsrd xmm4, eax, 3 	; xmm4 =  0 | alpha | alpha | aplha 
+	 	mov r12, rsi 			; r12 = dst_0_0 
+	 	mov r13, rdi			; r13 = src_0_0 	 	
 ;busco cantidad de ciclos	 	
 	 	sub rcx, 2 				; rcx = filas -2
-	 	mov r11, r8 
+	 	mov r11, rdx 
+	 	shr r11, 1				; cols / 2   			
+	 	dec r11  				; r8 = cols/2 - 1
+
+	 	;mov r11, r8				; r11 = r8 
 	 	lea r14, [r13 + r8]		; r14 = src fila i+1
 	 	lea r15, [r14 + r8] 	; r15 = src fila i+2
-	 	lea r12, [r12 + r8]
-	 	add r12, 4
+	 	lea r12, [r12 + r8]		; r12 = dst fila 1 -> comienzo en la segunda linea de pixeles 
+	 	
+	 	mov r8, r11 
 	 	.ciclo_vertical:
-	 	mov r11, r8 				; r11 tamaño de fila en pixeles
-	 	shr r11, 3					; r11 tam fila en bytes
-	 	dec r11  					; r11 tam a recorrer   
+	 	mov r11, r8 				; r11 -> veces ciclar 
+	 	add r12, 4 
+	 	
 	 	.ciclo_horizontal:
-	 		;mov qword [r12], 0
-	 		 	
-	 	;r12  = dst_inic 
-		;.ciclo:
+	 		
 			;punteros
 			movdqu xmm0, [r13]	; xmm0 = src_fila_i_4pixeles
-			;movdqu xmm15, xmm0
 			movdqu xmm1, [r14]	; xmm1 = src_fila_i+1_4pixeles
 			movdqu xmm2, [r15]	; xmm2 = src_fila_i+2_4pixeles
-			movdqu xmm3, xmm1	; me guardo el actual ; xmm3 = |pix4 | pix3| pix2| pix1| 
-			;maximos 
-			pmaxub xmm0, xmm1	; xmm0 = max(xmm0, xmm1)
-			pmaxub xmm0, xmm2 	; xmm0 = max(xmm0, xmm2) => xmm0 = | MAX_B_P1 | MAX_G_P1 | MAX_R_P1 | - | .... | MAX_B_P4 | ... | - |
-			;pixel1
-			movdqu xmm1, xmm0 		; xmm1 = xmm0 
-			pslldq xmm0, 4		; shifteo xmm0 a la izquierda 4 bytes
+			movdqu xmm3, xmm1	; xmm3 = | pix0 | pix1 | pix2 | pix3 | -> pixel's actuales a procesar 
+			;maximosAlrededor 
+			pmaxub xmm0, xmm1	; xmm0 = max(xmm0, xmm1) => xmm0 = maximos parciales 
+			pmaxub xmm0, xmm2 	; xmm0 = max(xmm0, xmm2) => xmm0 = | maxAlrededorPix1 | maxAlrededorPix2 | 
+			;maximosTotales
+			movdqu xmm1, xmm0	; xmm1 = xmm0 = | parcialp0 | parcialp1 | parcialp2 | parcialp3 |
+			pslldq xmm0, 4		; xmm0 = 		|  	  -		| parcialp0 | parcialp1 | parcialp2 |	
 			pmaxub xmm1, xmm0	; max parcial
-			pslldq xmm0, 4		; de nuevo 
-			pmaxub xmm1, xmm0	; maximos del SEG y prim PIXEL en primer y seg word de xmm1 => xmm1 = | MAXIMOSp2 | maximosp1 | basura | basura |
+			pslldq xmm0, 4		; xmm0 = 		| 	  - 	| 	  - 	| parcialp0 | parcialp1 |
+			pmaxub xmm1, xmm0	; xmm1 = 		|     - 	|     - 	|   maxP0	|   maxp1   | 
+			
+			; gdb checked0
+			
 			;fi'es
 			movdqu xmm2, xmm1 		; xmm2 = xmm1
-			psrldq xmm1, 12 		; xmm1 = | 0 |...| 0 | maximosp2 |
+			psrldq xmm1, 12 		; xmm1 = | maximosp1 |...| 0 | 
 			pslldq xmm2, 4
-			psrldq xmm2, 12			; xmm2 = | 0 |...| 0 | maximosp1 | 
+			psrldq xmm2, 12			; xmm2 = | maximosp0 |...| 0 |  
 			pxor xmm0, xmm0
 			punpcklbw xmm1, xmm0	 
-			punpcklwd xmm1, xmm0	; xmm1 = |maxb | maxg | maxr | tr | PIXEL 2
+			punpcklwd xmm1, xmm0	; xmm1 = | maxb | maxg | maxr | tr | PIXEL 1
 			punpcklbw xmm2, xmm0 	
-			punpcklwd xmm2, xmm0	; xmm2 = |maxb | maxg | maxr | tr | PIXEL 1 
+			punpcklwd xmm2, xmm0	; xmm2 = | maxb | maxg | maxr | tr | PIXEL 0 
 			
+			;gdb checked1 
+
 			;seteos previos a comparaciones
 			
 			mov eax, -1 ;	rax = -1
@@ -95,9 +107,9 @@ colorizar_asm:
 
 			;---- Pixel 2
 			; comparaciones 
-			pextrd edi, xmm1, 1 ; maxred 
-			pextrd esi, xmm1, 2 ; maxgreen
-			pextrd edx, xmm1, 3 ; maxblue 
+			pextrd edi, xmm1, 2 ; maxred 
+			pextrd esi, xmm1, 1 ; maxgreen
+			pextrd edx, xmm1, 0 ; maxblue 
 
 ;			pshufd xmm4, xmm4, 0b 	; xmm4 = alpha | alpha | alpha | alpha
 ;			pinsrd xmm4, ebx, 0b 	; xmm4 =  alpha | alpha | alpha | 0
@@ -112,39 +124,39 @@ colorizar_asm:
 			jl .elseFiR2
 			cmp edi, edx
 			jl .elseFiR2
-			pinsrd xmm5, ebx, 1 ; xmm5 = | 1  | 0's..
+			pinsrd xmm5, ebx, 2 ; xmm5 = | 1  | 0's..
 			jmp .fiG2
 			.elseFiR2:
-			pinsrd xmm5, eax, 1 ; xmm5 = | -1 | 0's.. 
+			pinsrd xmm5, eax, 2 ; xmm5 = | -1 | 0's.. 
 			.fiG2: 
 			;float fiG = ( (maxR <  maxG && maxG >= maxB) ? 1.0 + al: 1.0 - al )
 			cmp esi, edi
 			jle .elseFiG2
 			cmp esi, edx
 			jl .elseFiG2
-			pinsrd xmm5, ebx, 2; xmm5 = ? | 1 | 0's.. 
+			pinsrd xmm5, ebx, 1; xmm5 = ? | 1 | 0's.. 
 			jmp .fiB2
 			.elseFiG2:
-			pinsrd xmm5, eax, 2; xmm5 = ? | -1 | 0's 
+			pinsrd xmm5, eax, 1; xmm5 = ? | -1 | 0's 
 			.fiB2:
  			;float fiB = ( (maxR <  maxB && maxG <  maxB) ? 1.0 + al: 1.0 - al )			
  			cmp edx, edi
  			jle .elseFiB2
  			cmp edx, esi
  			jle .elseFiB2
- 			pinsrd xmm5, ebx, 3  ; xmm5 = ? | ? | 1 | 0	
+ 			pinsrd xmm5, ebx, 0  ; xmm5 = ? | ? | 1 | 0	
  			jmp .sigo2
  			.elseFiB2:
- 			pinsrd xmm5, eax, 3 ; xmm5 = ? | ? | -1 | 0 
+ 			pinsrd xmm5, eax, 0 ; xmm5 = ? | ? | -1 | 0 
  			.sigo2:
  			cvtdq2ps xmm5, xmm5 ; xmm5 = valores a sumar en floats 
  			addps xmm5, xmm4  	; xmm5 = fiB | fiG | fiR | 0  			DEL PIXEL 2
 
 			;---- Pixel 1
 			; comparaciones 
-			pextrd edi, xmm2, 1 ; maxred 
-			pextrd esi, xmm2, 2 ; maxgreen
-			pextrd edx, xmm2, 3 ; maxblue 
+			pextrd edi, xmm2, 2 ; maxred 
+			pextrd esi, xmm2, 1 ; maxgreen
+			pextrd edx, xmm2, 0 ; maxblue 
 			pxor xmm6, xmm6
 			;cvtdq2ps xmm6, xmm6
 			
@@ -154,30 +166,30 @@ colorizar_asm:
 			jl .elseFiR1
 			cmp edi, edx
 			jl .elseFiR1
-			pinsrd xmm6, ebx, 1 ; 
+			pinsrd xmm6, ebx, 2 ; 
 			jmp .fiG1
 			.elseFiR1:
-			pinsrd xmm6, eax, 1 ; 
+			pinsrd xmm6, eax, 2 ; 
 			.fiG1: 
 			;float fiG = ( (maxR <  maxG && maxG >= maxB) ? 1.0 + al: 1.0 - al )
 			cmp esi, edi
 			jle .elseFiG1
 			cmp esi, edx
 			jl .elseFiG1
-			pinsrd xmm6, ebx, 2; xmm5 = ? | 1 | 0's.. 
+			pinsrd xmm6, ebx, 1; xmm5 = ? | 1 | 0's.. 
 			jmp .fiB1
 			.elseFiG1:
-			pinsrd xmm6, eax, 2; xmm5 = ? | -1 | 0's 
+			pinsrd xmm6, eax, 1; xmm5 = ? | -1 | 0's 
 			.fiB1:
  			;float fiB = ( (maxR <  maxB && maxG <  maxB) ? 1.0 + al: 1.0 - al )			
  			cmp edx, edi
  			jle .elseFiB1
  			cmp edx, esi
  			jle .elseFiB1
- 			pinsrd xmm6, ebx, 3  ; xmm5 = ? | ? | 1 | 0	
+ 			pinsrd xmm6, ebx, 0  ; xmm5 = ? | ? | 1 | 0	
  			jmp .sigo1
  			.elseFiB1:
- 			pinsrd xmm6, eax, 3 ; xmm5 = ? | ? | -1 | 0 
+ 			pinsrd xmm6, eax, 0 ; xmm5 = ? | ? | -1 | 0 
  			.sigo1:
  			cvtdq2ps xmm6, xmm6 ; xmm6 = valores a sumar en floats 
  			addps xmm6, xmm4  	; xmm6 = fiB | fiG | fiR | 0  			DEL PIXEL 1
@@ -283,22 +295,31 @@ pxor xmm6, xmm6
 		;	p_d->b = ((fiB * p_sActAct->b) < 255 ?  0.5+(p_sActAct->b * fiB  ) : 255);
 
 			;pandn xmm5, xmm5 
-			pextrq [r12], xmm5, 0b
+	
+			pextrq rax, xmm5, 0
+			mov [r12], rax 
+			
+			dec r11 
+			cmp r11, 0
+			je .continuacion
 
 			add r12, 8	;dst 
 			add r13, 8	;src_fila_i
 			add r14, 8	;src_fila_i+1
 			add r15, 8	;src_fila_i+2
-			dec r11
-			cmp r11, 0b
-			je .continuacion
+			
 			jmp .ciclo_horizontal
 
-		.continuacion:
-		 	add r12, 8 
+		.continuacion: 
 		 	dec rcx
-		 	cmp rcx, 0b
+		 	cmp rcx, 0
 		 	je .fin
+		 	;add r12, 2
+			
+			add r12, 12	;dst 
+			add r13, 16	;src_fila_i
+			add r14, 16	;src_fila_i+1
+			add r15, 16	;src_fila_i+2
 		 	jmp .ciclo_vertical
 	.fin:
 
