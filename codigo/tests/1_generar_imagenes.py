@@ -12,7 +12,7 @@ IMAGENES=["lena.bmp"]
 
 assure_dirs()
 
-sizes=['212x212']
+sizes=['12x12']
 
 
 for filename in IMAGENES:
