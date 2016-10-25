@@ -50,7 +50,7 @@ combinar_asm:
 
     xor r11d, r11d              ; r11d = y = 0
 
-    
+    mov rcx, r13               ; rcx = filas
 
 ciclo_y:
     
@@ -283,11 +283,7 @@ ciclo_x:
     jmp ciclo_x
 fin_ciclo_x:
 
-    inc r11d                    ; r11d = y = y + 1
-	mov eax, r13d               ; eax = filas
-    mov ebx, r11d       
-    cmp eax, ebx
-    jne ciclo_y
+	loop ciclo_y
     pop r14
     pop r13
     pop r12

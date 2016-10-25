@@ -77,11 +77,10 @@ void imprimir_tiempos_ejecucion(unsigned long long int start, unsigned long long
 	unsigned long long int cant_ciclos = end-start;
 
 	printf("Tiempo de ejecución:\n");
-	printf("  Comienzo                          : %llu\n", start);
-	printf("  Fin                               : %llu\n", end);
 	printf("  # iteraciones                     : %d\n", cant_iteraciones);
-	printf("  # de ciclos insumidos totales     : %llu\n", cant_ciclos);
-	printf("  # de ciclos insumidos por llamada : %.3f\n", (float)cant_ciclos/(float)cant_iteraciones);
+	printf("  # de ciclos insumidos totales     : %llu\n", start);
+	printf("  # de ciclos minima de una llamada    : %llu\n", end);
+	printf("  # de ciclos insumidos por llamada : %.3f\n", (float)start/(float)cant_iteraciones);
 }
 
 void correr_filtro_imagen(configuracion_t *config, aplicador_fn_t aplicador)
@@ -97,14 +96,20 @@ void correr_filtro_imagen(configuracion_t *config, aplicador_fn_t aplicador)
 	else
 	{
 		imagenes_abrir(config);
-		unsigned long long start, end;
-		MEDIR_TIEMPO_START(start)
+		unsigned long long start, end, total, minimo, medicion;
+		total = 0;
 		for (int i = 0; i < config->cant_iteraciones; i++) {
+				MEDIR_TIEMPO_START(start)
 				aplicador(config);
+				MEDIR_TIEMPO_STOP(end)
+				medicion = end - start;
+				total = total + medicion;
+				if (i==0) minimo = medicion;
+				if (medicion < minimo) minimo = medicion;
 		}
-		MEDIR_TIEMPO_STOP(end)
+		
 		imagenes_guardar(config);
 		imagenes_liberar(config);
-		imprimir_tiempos_ejecucion(start, end, config->cant_iteraciones);
+		imprimir_tiempos_ejecucion(total, minimo, config->cant_iteraciones);
 	}
 }
